@@ -1,0 +1,112 @@
+services:
+
+  # =========================
+  # MYSQL
+  # =========================
+  mysql:
+    image: mysql:8.0
+    container_name: hr_mysql
+    restart: unless-stopped
+
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: db_hr_management
+
+    ports:
+      - "3306:3306"
+
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mysql -h127.0.0.1 -uroot -proot -e \"SELECT 1 FROM information_schema.schemata WHERE schema_name='db_hr_management'\""
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
+
+
+  # =========================
+  # DATABASE MIGRATION
+  # =========================
+  migration:
+    image: migrate/migrate:v4.19.1
+
+    container_name: hr_migration
+
+    volumes:
+      - ./hr-management-api/migrations:/migrations
+
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+    command:
+      - "-path=/migrations"
+      - "-database=mysql://root:root@tcp(mysql:3306)/db_hr_management?charset=utf8mb4&parseTime=True&loc=Local"
+      - "up"
+
+
+  # =========================
+  # BACKEND GO
+  # =========================
+  backend:
+    build:
+      context: ./hr-management-api
+      dockerfile: Dockerfile
+
+    container_name: hr_backend
+    restart: unless-stopped
+
+    ports:
+      - "8080:8080"
+
+    environment:
+      APP_NAME: HR Management API
+      APP_ENV: development
+      APP_PORT: 8080
+
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: db_hr_management
+      DB_USER: root
+      DB_PASSWORD: root
+
+      JWT_SECRET: hr-management-secret
+
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+      migration:
+        condition: service_completed_successfully
+
+
+  # =========================
+  # FRONTEND
+  # =========================
+  frontend:
+    build:
+      context: ./react-dev-template-main
+      dockerfile: Dockerfile
+
+    container_name: hr_frontend
+    restart: unless-stopped
+
+    ports:
+      - "3000:3000"
+
+    depends_on:
+      backend:
+        condition: service_started
+
+
+# =========================
+# VOLUME
+# =========================
+volumes:
+  mysql_data:
