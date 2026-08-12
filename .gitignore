@@ -1,0 +1,18 @@
+# Environment
+.env
+*.env
+
+# SSH private keys
+*.pem
+*.key
+
+# Node
+node_modules/
+dist/
+build/
+
+# Go
+*.exe
+
+# Logs
+*.log

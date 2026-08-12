@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS menus (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    `key` VARCHAR(100) NOT NULL,
+    path VARCHAR(150) NULL,
+    icon VARCHAR(100) NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    UNIQUE KEY uq_menus_key (`key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
